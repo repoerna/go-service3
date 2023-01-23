@@ -1,0 +1,28 @@
+# build go binary
+FROM golang:1.19 as build_service
+ENV CGO_ENABLED 0 # disabling cgo
+ARG BUILD_REF
+
+# copy the source code into container
+COPY . /service
+
+# build the service binary
+WORKDIR /service
+RUN go build -ldflags "-X main.build=${BUILD_REF}"
+
+# run go binary in alpine
+FROM alpine:3.14
+ARG BUILD_DATE
+ARG BUILD_REF
+COPY --from=build_service /service /service
+WORKDIR /service
+CMD ["./go-service3"]
+
+LABEL \
+org.opencontainers.image.created="${BUILD_DATE}" \
+org.opencontainers.image.title="service" \
+org.opencontainers.image.authors="repoerna" \
+org.opencontainers.image.revision="${BUILD_REF}" \
+org.opencontainers.image.vendor="repoerna"
+
+
