@@ -4,13 +4,24 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
+
+	"go.uber.org/automaxprocs/maxprocs"
 )
 
 var build = "develop"
 
 func main() {
-	log.Println("starting service TEST", build)
+	_, err := maxprocs.Set()
+	if err != nil {
+		log.Printf("maxprocs: %w", err)
+		os.Exit(1)
+	}
+
+	g := runtime.GOMAXPROCS(0)
+
+	log.Printf("starting service build[%s] CPU[%d]", build, g)
 	defer log.Println("service ended")
 
 	shutdown := make(chan os.Signal, 1)
