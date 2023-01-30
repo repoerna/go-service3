@@ -6,15 +6,16 @@ run:
 build:
 	go build -ldflags "-X main.build=local"
 
+# ==============================================================================
 # building containers
 VERSION := 1.0
 
-all: service
+all: sales-api
 
-service:
+sales-api:
 	docker build \
-		-f zarf/docker/dockerfile \
-		-t service-amd64:$(VERSION) \
+		-f deployment/docker/dockerfile.sales-api \
+		-t sales-api-amd64:$(VERSION) \
 		--build-arg BUILD_REF=$(VERSION) \
 		--build-arg BUILD_DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"` \
 		.
@@ -26,18 +27,19 @@ kind-up:
 	kind create cluster\
 		--image kindest/node:v1.26.0 \
 		--name $(KIND_CLUSTER) \
-		--config zarf/k8s/kind/config.yaml
-	kubectl config set-context --current --namespace=service
+		--config deployment/k8s/kind/kind-config.yaml
+	kubectl config set-context --current --namespace=sales-system
 
 kind-down:
 	kind delete cluster --name $(KIND_CLUSTER)
 
 kind-load:
-	kind load docker-image service-amd64:$(VERSION) --name $(KIND_CLUSTER)
+	cd deployment/k8s/kind/sales-pod; kustomize edit set image sales-api-image=sales-api-amd64:$(VERSION)
+	kind load docker-image sales-api-amd64:$(VERSION) --name $(KIND_CLUSTER)
 
 kind-apply:
-	# cat zarf/k8s/base/service-pod/base-service.yaml | kubectl apply -f -
-	kustomize build zarf/k8s/kind/service-pod | kubectl apply -f -
+	# cat deployment/k8s/base/sales-pod/base-sales.yaml | kubectl apply -f -
+	kustomize build deployment/k8s/kind/sales-pod | kubectl apply -f -
 
 kind-status:
 	kubectl get nodes -o wide
@@ -45,18 +47,18 @@ kind-status:
 	kubectl get pods -o wide --watch --all-namespaces
 	# kubectl cluster-info --context kind-$(KIND_CLUSTER)
 
-kind-status-service:
-	kubectl get pods -o wide --watch --namespace=service-system
+kind-status-sales:
+	kubectl get pods -o wide --watch --namespace=sales-system
 
 kind-logs:
-	kubectl logs -l app=service --all-containers=true -f --tail=100 --namespace=service-system
+	kubectl logs -l app=sales --all-containers=true -f --tail=100 --namespace=sales-system
 
 kind-restart:
-	kubectl rollout restart deployment service-pod --namespace=service-system
+	kubectl rollout restart deployment sales-pod --namespace=sales-system
  
  kind-update: all kind-load kind-restart
 
  kind-update-apply: all kind-load kind-apply
 
  kind-describe:
-	kubectl describe pod -l app=service --namespace=service-system
+	kubectl describe pod -l app=sales --namespace=sales-system

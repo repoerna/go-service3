@@ -30,4 +30,11 @@ func main() {
 	<-shutdown
 
 	log.Println("stopping service")
+
+	// log, err := logger.New("SALES_API")
+	// if err != nil {
+	// 	fmt.Println("error creating logger: ", err)
+	// }
+
+	// log.Info("test")
 }
