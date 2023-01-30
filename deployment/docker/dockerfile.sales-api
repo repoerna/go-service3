@@ -1,6 +1,6 @@
 # build go binary
 FROM golang:1.19 as build_sales-api
-ENV CGO_ENABLED 0 # disabling cgo
+ENV CGO_ENABLED 0
 ARG BUILD_REF
 
 # copy the source code into container
